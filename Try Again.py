@@ -4,6 +4,7 @@ Created on Fri Sep  4 15:49:13 2020
 
 @author: Percy
 """
+import math
 from PIL import Image
 from PIL import ImageColor
 from io import BytesIO
@@ -38,8 +39,6 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as cl
         # I=BytesIO(msg[2])
         # I.getvalue()
         #ITS IN HEX Numbers!
-        ImageColor.getcolor(msg[2],"RGB")
-
         # I = msgpack.unpackb(msg[2])
         # print(I)
 #        client._handleReceivedMessage(self,msg)
@@ -54,7 +53,6 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as cl
         # msg[2].decode("utf-16")
         NumVal = list(msg[2])
         #LIST OF Numerical Values for Picture
-        print(len(NumVal))
         # DecodedHex = msg[2].decode("ascii")
         # print(DecodedHex)
     def stepSimulation():
@@ -69,12 +67,30 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as cl
     client.simxAddStatusbarMessage('Hello world!',client.simxDefaultPublisher())
     visionSensorHandle=client.simxGetObjectHandle('Vision_sensor',client.simxServiceCall())
     passiveVisionSensorHandle=client.simxGetObjectHandle('PassiveVisionSensor',client.simxServiceCall())
-
+    pioneerHandle = client.simxGetObjectHandle("Pioneer_p3dx",client.simxServiceCall())
+    parmHandle = client.simxGetObjectHandle("P_Arm",client.simxServiceCall())
+    mVel=100*math.pi/180
+    mAccel=150*math.pi/180
+    maxVel=[mVel,mVel,mVel,mVel,mVel,mVel]
+    maxAccel=[mAccel,mAccel,mAccel,mAccel,mAccel,mAccel]
+    targetVel=[0,0,0,0,0,0]
+    I = True
+    pioneerJointHandles = []
+    uarmJointHandles =[]
+    i = 0
+#    while I:
+#        print(client.simxGetObjectChild(pioneerHandle[1],i,client.simxServiceCall())[1])
+#        pioneerJointHandles.append(client.simxGetObjectChild(pioneerHandle[1],i,client.simxServiceCall())[1])
+#        uarmJointHandles.append(client.simxGetObjectChild(uarmHandle[1],i,client.simxServiceCall())[1])
+#        i = i+1
+#        if pioneerJointHandles[-1] == -1 and uarmJointHandles[-1] == -1:
+#            I = False
     if client.runInSynchronousMode:
         client.simxSynchronous(True)
     dedicatedSub=client.simxCreateSubscriber(imageCallback,1,True)
 #    dedicatedSub2=client.simxCreateSubscriber(ShowImage,1,True)
     client.simxGetVisionSensorImage(visionSensorHandle[1],False,dedicatedSub)
+    
 #    msgpack.unpack()
     #client.simxGetVisionSensorImage(visionSensorHandle[1],False,client.simxCreateSubscriber(imageCallback))
     
