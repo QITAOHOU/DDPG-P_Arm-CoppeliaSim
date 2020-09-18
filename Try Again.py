@@ -4,57 +4,91 @@ Created on Fri Sep  4 15:49:13 2020
 
 @author: Percy
 """
+#from JointClass import JointClass
+import pdb
 import math
 from PIL import Image
 from PIL import ImageColor
 from io import BytesIO
-import msgpack
 import b0RemoteApi
 import time
 with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as client:
     client.doNextStep=True
     client.runInSynchronousMode=True
+    client.jointAngle1=0
+    client.jointAngle2=0   
+    client.jointAngle3=0
+    client.jointAngle4=0
+    client.jointAngle5=0
+    client.jointAngle6=0
+    client.targetAngle=0
+    client.maxForce=100
+    jointAngleDict = {}
     def simulationStepStarted(msg):
         simTime=msg[1][b'simulationTime'];
-        print('Simulation step started. Simulation time: ',simTime)
-        
+        print('Simulation step started. Simulation time: ',simTime)  
     def simulationStepDone(msg):
         simTime=msg[1][b'simulationTime'];
         print('Simulation step done. Simulation time: ',simTime);
         client.doNextStep=True
-    def Unpacker(msg):
-        print("1")
-        unpacked = msgpack.unpackb(msg)
-        print("Unpacked!")
-        out = Image.fromarray(unpacked, "RGB",)
-        print("Image Created!")
-        out.show()
-        return out
     def imageCallback(msg):
         print('Received image.',msg[1])
-        # print(msg[2])
-        # print(type(msg[2]))
         ByteHexTo1DPythonList(msg)
-        # print(int(msg[2],16))
-        # I=BytesIO(msg[2])
-        # I.getvalue()
-        #ITS IN HEX Numbers!
-        # I = msgpack.unpackb(msg[2])
-        # print(I)
-#        client._handleReceivedMessage(self,msg)
-        client.simxSetVisionSensorImage(passiveVisionSensorHandle[1],False,msg[2],client.simxCreatePublisher())
-        #client.simxSetVisionSensorImage()
-#    def ShowImage(msg):
-#        print("It's happened again")
-
+        client.simxSetVisionSensorImage(passiveVisionSensorHandle[1],False,msg[2],client.simxCreatePublisher())        
     def ByteHexTo1DPythonList(msg):
-        # view = msg[2].getbuffer()
-        # view[25:]
-        # msg[2].decode("utf-16")
         NumVal = list(msg[2])
-        #LIST OF Numerical Values for Picture
-        # DecodedHex = msg[2].decode("ascii")
-        # print(DecodedHex)
+    def jointAngleCallback1(msg):
+        client.jointAngle1=msg[1]
+        jointAngleDict[str(pArmJointHandleList[0])] = client.jointAngle1
+    def jointAngleCallback2(msg):
+        client.jointAngle2=msg[1]
+        jointAngleDict[str(pArmJointHandleList[1])] = client.jointAngle2
+    def jointAngleCallback3(msg):
+        client.jointAngle3=msg[1]
+        jointAngleDict[str(pArmJointHandleList[2])] = client.jointAngle3
+    def jointAngleCallback4(msg):
+        client.jointAngle4=msg[1]
+        jointAngleDict[str(pArmJointHandleList[3])] = client.jointAngle4
+    def jointAngleCallback5(msg):
+        client.jointAngle5=msg[1]
+        jointAngleDict[str(pArmJointHandleList[4])] = client.jointAngle5
+    def jointAngleCallback6(msg):
+        client.jointAngle6=msg[1]
+        jointAngleDict[str(pArmJointHandleList[5])] = client.jointAngle6
+    def moveToAngle(jointH,angle):
+        client.targetAngle=angle
+        client.jointAngle = jointAngleDict[str(jointH)] 
+        while abs(client.jointAngle-client.targetAngle)>0.1*math.pi/180:
+            print(abs(client.jointAngle-client.targetAngle))
+            if client.doNextStep:
+                client.doNextStep=False
+                vel=computeTargetVelocity()
+                client.simxSetJointTargetVelocity(jointH,vel,client.simxDefaultPublisher())
+                client.simxSetJointMaxForce(jointH,client.maxForce,client.simxDefaultPublisher())
+                client.simxSynchronousTrigger()
+            client.simxSpinOnce()
+            client.jointAngle = jointAngleDict[str(jointH)]    
+        client.simxSetJointTargetVelocity(jointH,0,client.simxDefaultPublisher())
+
+    def computeTargetVelocity():
+        dynStepSize=0.1
+        velUpperLimit=360*math.pi/180
+        PID_P=0.1
+        errorValue=(client.targetAngle-client.jointAngle)
+        sinAngle=math.sin(errorValue)
+        cosAngle=math.cos(errorValue)
+        errorValue=math.atan2(sinAngle,cosAngle)
+        ctrl=errorValue*PID_P
+        
+        # Calculate the velocity needed to reach the position in one dynamic time step:
+        velocity=ctrl/dynStepSize
+        if (velocity>velUpperLimit):
+            velocity=velUpperLimit
+            
+        if (velocity<-velUpperLimit):
+            velocity=-velUpperLimit
+        
+        return velocity
     def stepSimulation():
         if client.runInSynchronousMode:
             while not client.doNextStep:
@@ -63,45 +97,45 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as cl
             client.simxSynchronousTrigger()
         else:
             client.simxSpinOnce()
-
-    client.simxAddStatusbarMessage('Hello world!',client.simxDefaultPublisher())
     visionSensorHandle=client.simxGetObjectHandle('Vision_sensor',client.simxServiceCall())
     passiveVisionSensorHandle=client.simxGetObjectHandle('PassiveVisionSensor',client.simxServiceCall())
     pioneerHandle = client.simxGetObjectHandle("Pioneer_p3dx",client.simxServiceCall())
     parmHandle = client.simxGetObjectHandle("P_Arm",client.simxServiceCall())
-    mVel=100*math.pi/180
-    mAccel=150*math.pi/180
-    maxVel=[mVel,mVel,mVel,mVel,mVel,mVel]
-    maxAccel=[mAccel,mAccel,mAccel,mAccel,mAccel,mAccel]
-    targetVel=[0,0,0,0,0,0]
-    I = True
-    pioneerJointHandles = []
-    uarmJointHandles =[]
-    i = 0
-#    while I:
-#        print(client.simxGetObjectChild(pioneerHandle[1],i,client.simxServiceCall())[1])
-#        pioneerJointHandles.append(client.simxGetObjectChild(pioneerHandle[1],i,client.simxServiceCall())[1])
-#        uarmJointHandles.append(client.simxGetObjectChild(uarmHandle[1],i,client.simxServiceCall())[1])
-#        i = i+1
-#        if pioneerJointHandles[-1] == -1 and uarmJointHandles[-1] == -1:
-#            I = False
-    if client.runInSynchronousMode:
-        client.simxSynchronous(True)
-    dedicatedSub=client.simxCreateSubscriber(imageCallback,1,True)
-#    dedicatedSub2=client.simxCreateSubscriber(ShowImage,1,True)
-    client.simxGetVisionSensorImage(visionSensorHandle[1],False,dedicatedSub)
     
-#    msgpack.unpack()
-    #client.simxGetVisionSensorImage(visionSensorHandle[1],False,client.simxCreateSubscriber(imageCallback))
+    #List of Joint Handles, with each subsequent joint handle and ending with the P_Grip_Motor and Parent P_Arm Handle
+    pArmJointHandleList = [client.simxGetObjectHandle("P_Arm_joint1",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint2",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint3",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint4",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint5",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint6",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Grip_straight_motor",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm",client.simxServiceCall())[1]]
+    #List of JointAngleCallback functions
+    jointAngleCallback = [jointAngleCallback1,jointAngleCallback2,jointAngleCallback3,jointAngleCallback4,jointAngleCallback5,jointAngleCallback6]
+    jointAngleDict[str(pArmJointHandleList[0])] = 0
+    jointAngleDict[str(pArmJointHandleList[1])] = 0
+    jointAngleDict[str(pArmJointHandleList[2])] = 0
+    jointAngleDict[str(pArmJointHandleList[3])] = 0
+    jointAngleDict[str(pArmJointHandleList[4])] = 0
+    jointAngleDict[str(pArmJointHandleList[5])] = 0
+    for i in range(len(pArmJointHandleList)-2):
+        client.simxSetJointTargetVelocity(pArmJointHandleList[i],360*math.pi/180,client.simxServiceCall())
+        client.simxGetJointPosition(pArmJointHandleList[i],client.simxDefaultSubscriber(jointAngleCallback[i]))
+    client.simxSynchronous(True)
+#    #ImageCollector    
+#    dedicatedSub=client.simxCreateSubscriber(imageCallback,1,True)
+#    client.simxGetVisionSensorImage(visionSensorHandle[1],False,dedicatedSub)
+#    #Movement Executor
+#    #Angle_List is Generated by NN
+
+    
     
     client.simxGetSimulationStepStarted(client.simxDefaultSubscriber(simulationStepStarted));
     client.simxGetSimulationStepDone(client.simxDefaultSubscriber(simulationStepDone));
     client.simxStartSimulation(client.simxDefaultPublisher())
-    startTime=time.time()
-    while time.time()<startTime+50:
-        stepSimulation()
-    
-    print("Panic!")  
+#    startTime=time.time()
+#    while time.time()<startTime+5:
+#        stepSimulation()
+#    pdb.set_trace()
+    for i in range(len(pArmJointHandleList)-2):
+        client.simxSetJointTargetVelocity(pArmJointHandleList[i],0,client.simxServiceCall())
+    Angle_List = [0.3,-0.3,-0.3,0.3,0.3,1]
+    for i in range(len(Angle_List)):
+        moveToAngle(pArmJointHandleList[i],Angle_List[i])
     client.simxStopSimulation(client.simxDefaultPublisher())
 
     
