@@ -59,7 +59,6 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as cl
         client.targetAngle=angle
         client.jointAngle = jointAngleDict[str(jointH)] 
         while abs(client.jointAngle-client.targetAngle)>0.1*math.pi/180:
-            print(abs(client.jointAngle-client.targetAngle))
             if client.doNextStep:
                 client.doNextStep=False
                 vel=computeTargetVelocity()
@@ -69,7 +68,22 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as cl
             client.simxSpinOnce()
             client.jointAngle = jointAngleDict[str(jointH)]    
         client.simxSetJointTargetVelocity(jointH,0,client.simxDefaultPublisher())
+    def moveGripperMotor(targetVelocity,maxGripperForce):
+        finger1 = client.simxGetObjectHandle("P_Grip_right_angle_finger1",client.simxServiceCall())[1]
+        finger2= client.simxGetObjectHandle("P_Grip_right_angle_finger2",client.simxServiceCall())[1]
+        collisionConditionFingerFinger = client.simxReadCollision(fingerFingerCollisionHandle,client.simxServiceCall())[1]
+        collisionConditionFinger1Cuboid = client.simxReadCollision(fingerCuboidCollisionHandle,client.simxServiceCall())[1]
+        collisionConditionFinger2Cuboid = client.simxReadCollision(fingerCuboidCollision2Handle,client.simxServiceCall())[1]
 
+        client.simxSetJointTargetVelocity(pArmJointHandleList[6],targetVelocity,client.simxServiceCall())
+        client.simxSetJointMaxForce(pArmJointHandleList[6],maxGripperForce,client.simxServiceCall())
+        while collisionConditionFingerFinger == 0 or collisionConditionFinger2Cuboid == 0 or collisionConditionFinger1Cuboid==0:
+            print("Hey!")
+            client.simxSynchronousTrigger()
+            client.simxSpinOnce()
+            collisionConditionFingerFinger = client.simxReadCollision(fingerFingerCollisionHandle,client.simxServiceCall())[1]
+            collisionConditionFinger1Cuboid = client.simxReadCollision(fingerCuboidCollisionHandle,client.simxServiceCall())[1]
+            collisionConditionFinger2Cuboid = client.simxReadCollision(fingerCuboidCollision2Handle,client.simxServiceCall())[1]
     def computeTargetVelocity():
         dynStepSize=0.1
         velUpperLimit=360*math.pi/180
@@ -103,15 +117,21 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as cl
     parmHandle = client.simxGetObjectHandle("P_Arm",client.simxServiceCall())
     
     #List of Joint Handles, with each subsequent joint handle and ending with the P_Grip_Motor and Parent P_Arm Handle
-    pArmJointHandleList = [client.simxGetObjectHandle("P_Arm_joint1",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint2",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint3",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint4",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint5",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint6",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Grip_straight_motor",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm",client.simxServiceCall())[1]]
+    pArmJointHandleList = [client.simxGetObjectHandle("P_Arm_joint1",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint2",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint3",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint4",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint5",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm_joint6",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Grip_right_angle_motor",client.simxServiceCall())[1],client.simxGetObjectHandle("P_Arm",client.simxServiceCall())[1]]
     #List of JointAngleCallback functions
     jointAngleCallback = [jointAngleCallback1,jointAngleCallback2,jointAngleCallback3,jointAngleCallback4,jointAngleCallback5,jointAngleCallback6]
+    #Filling Dictionary Entries
     jointAngleDict[str(pArmJointHandleList[0])] = 0
     jointAngleDict[str(pArmJointHandleList[1])] = 0
     jointAngleDict[str(pArmJointHandleList[2])] = 0
     jointAngleDict[str(pArmJointHandleList[3])] = 0
     jointAngleDict[str(pArmJointHandleList[4])] = 0
     jointAngleDict[str(pArmJointHandleList[5])] = 0
+    #CollisionHandleCollection
+    fingerFingerCollisionHandle=client.simxGetCollisionHandle("FingerFingerCollision",client.simxServiceCall())[1]
+    fingerCuboidCollisionHandle=client.simxGetCollisionHandle("FingerCuboidCollision",client.simxServiceCall())[1]
+    fingerCuboidCollision2Handle=client.simxGetCollisionHandle("FingerCuboidCollision2",client.simxServiceCall())[1]
+    #Not really Sure What this Bit is For
     for i in range(len(pArmJointHandleList)-2):
         client.simxSetJointTargetVelocity(pArmJointHandleList[i],360*math.pi/180,client.simxServiceCall())
         client.simxGetJointPosition(pArmJointHandleList[i],client.simxDefaultSubscriber(jointAngleCallback[i]))
@@ -123,19 +143,24 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient','b0RemoteApi') as cl
 #    #Angle_List is Generated by NN
 
     
-    
+    #Creates the Relevant Subscriber/Publisher Channels for Stepping
     client.simxGetSimulationStepStarted(client.simxDefaultSubscriber(simulationStepStarted));
     client.simxGetSimulationStepDone(client.simxDefaultSubscriber(simulationStepDone));
     client.simxStartSimulation(client.simxDefaultPublisher())
+    #Antiquated Time Based Stepping System
 #    startTime=time.time()
 #    while time.time()<startTime+5:
 #        stepSimulation()
 #    pdb.set_trace()
-    for i in range(len(pArmJointHandleList)-2):
+    #Sets Target Velocities to 0 to Lock Motors
+    for i in range(len(pArmJointHandleList)-1):
         client.simxSetJointTargetVelocity(pArmJointHandleList[i],0,client.simxServiceCall())
     Angle_List = [0.3,-0.3,-0.3,0.3,0.3,1]
-    for i in range(len(Angle_List)):
-        moveToAngle(pArmJointHandleList[i],Angle_List[i])
+    #Executes PID Movement Method
+#    for i in range(len(Angle_List)):
+#        moveToAngle(pArmJointHandleList[i],Angle_List[i])
+    #Moves Motor
+    moveGripperMotor(1,1)
     client.simxStopSimulation(client.simxDefaultPublisher())
 
     
