@@ -14,7 +14,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL.Image
-import pyvirtualdisplay
 #
 import tensorflow as tf
 
@@ -32,6 +31,7 @@ from tf_agents.experimental.train.utils import spec_utils
 from tf_agents.agents.ddpg import critic_network
 from tf_agents.utils import common
 from Networks import ActorNetwork
+
 tf.compat.v1.enable_v2_behavior()
 
 
@@ -144,7 +144,16 @@ agent = ddpg_agent.DdpgAgent(
     train_step_counter= train_step_counter,
     name= "Agent"
 )
-
-print(agent.train_argspec)
-
+print(agent.policy)
+#step_type = tf.convert_to_tensor(np.random.randint(0,1,size=(64,2)))
+#observation = tf.convert_to_tensor(np.random.randint(-2,2,size=(64,2,28)))
+#action = tf.convert_to_tensor(np.random.randint(-2,2,size=(64,2,8)))
+#discount = tf.convert_to_tensor(np.random.randint(0,1,size=(64,2)))
+#reward = tf.convert_to_tensor(np.random.randint(0,1,size=(64,2)))
+#next_step_type = tf.convert_to_tensor(np.random.randint(0,1,size=(64,2)))
+#policy_info= tf.Variable(np.empty((2,3), dtype=np.float32))
+#experience = trajectory.Trajectory(
+#    step_type, observation, action, policy_info, next_step_type, reward, discount
+#)
+#agent.train(experience)
 

@@ -88,23 +88,23 @@ class ActorNetwork(network.Network):
 
 
 ####ACTOR TEST####
-action_spec = array_spec.BoundedArraySpec((6,), np.float32, minimum=0, maximum=10)
-observation_spec = array_spec.BoundedArraySpec((64, 64, 3), np.float32, minimum=0,
-                                        maximum=255)
-
-random_env = random_py_environment.RandomPyEnvironment(observation_spec, action_spec=action_spec)
-
-# Convert the environment to a TFEnv to generate tensors.
-tf_env = tf_py_environment.TFPyEnvironment(random_env)
-
-#preprocessing_layers = {
-#    'image': tf.keras.models.Sequential([tf.keras.layers.Conv2D(8, 4),
-#                                        tf.keras.layers.Flatten()]),
-#    'vector': tf.keras.layers.Dense(5)
-#    }
-#preprocessing_combiner = tf.keras.layers.Concatenate(axis=-1)
-actor = ActorNetwork(tf_env.observation_spec(), 
-                     tf_env.action_spec())
-
-time_step = tf_env.reset()
-print(actor(time_step.observation,time_step.step_type))
+#action_spec = array_spec.BoundedArraySpec((6,), np.float32, minimum=0, maximum=10)
+#observation_spec = array_spec.BoundedArraySpec((64, 64, 3), np.float32, minimum=0,
+#                                        maximum=255)
+#
+#random_env = random_py_environment.RandomPyEnvironment(observation_spec, action_spec=action_spec)
+#
+## Convert the environment to a TFEnv to generate tensors.
+#tf_env = tf_py_environment.TFPyEnvironment(random_env)
+#
+##preprocessing_layers = {
+##    'image': tf.keras.models.Sequential([tf.keras.layers.Conv2D(8, 4),
+##                                        tf.keras.layers.Flatten()]),
+##    'vector': tf.keras.layers.Dense(5)
+##    }
+##preprocessing_combiner = tf.keras.layers.Concatenate(axis=-1)
+#actor = ActorNetwork(tf_env.observation_spec(), 
+#                     tf_env.action_spec())
+#
+#time_step = tf_env.reset()
+##print(actor(time_step.observation,time_step.step_type))

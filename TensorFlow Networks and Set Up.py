@@ -12,11 +12,10 @@ import IPython
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import PIL.Image
-import pyvirtualdisplay
+
 #
 import tensorflow as tf
-
+import pdb
 from tf_agents.agents.ddpg import ddpg_agent
 from tf_agents.drivers import dynamic_step_driver
 from tf_agents.environments import suite_gym
@@ -27,6 +26,7 @@ from tf_agents.metrics import tf_metrics
 from tf_agents.environments import suite_pybullet
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.trajectories import trajectory
+from tf_agents.policies import random_tf_policy
 from tf_agents.experimental.train.utils import spec_utils
 from tf_agents.agents.ddpg import critic_network
 from tf_agents.utils import common
@@ -53,9 +53,6 @@ eval_interval = 1000  # @param {type:"integer"}
 #####LOAD ENVIRONMENT #####
 env_name = "MinitaurBulletEnv-v0"
 env = suite_pybullet.load(env_name)
-env.reset()
-PIL.Image.fromarray(env.render())
-
 
 ####TWO ENV instantiated. One for Train, One for Eval ######
 train_py_env = suite_gym.load(env_name)
@@ -63,13 +60,16 @@ eval_py_env = suite_gym.load(env_name)
 #Converts Numpy Arrays to Tensors, so they are compatible with Tensorflow agents and policies
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
-
+time_step = env.reset()
 observation_spec, action_spec, time_step_spec = (spec_utils.get_tensor_specs(train_env))
 #print(observation_spec)
+
+
+
 #######Networks#####
 #conv_layer_params = [(32,3,3),(32,3,3),(32,3,3)]
 conv_layer_params = None
-fc_layer_params=(200, 200)
+fc_layer_params=(400, 300)
 kernel_initializer = tf.keras.initializers.VarianceScaling(
         scale=1. / 3., mode='fan_in', distribution='uniform')
 final_layer_initializer = tf.keras.initializers.RandomUniform(
@@ -79,7 +79,7 @@ actor_net = ActorNetwork(observation_spec,
                preprocessing_layers=None,
                preprocessing_combiner=None,
                conv_layer_params= conv_layer_params,
-               fc_layer_params=(200, 200),
+               fc_layer_params=fc_layer_params,
                dropout_layer_params=None,
                activation_fn=tf.keras.activations.relu,
                enable_last_layer_zero_initializer=False,
@@ -88,37 +88,48 @@ actor_net = ActorNetwork(observation_spec,
 critic_net = critic_network.CriticNetwork(
         (observation_spec, action_spec),
         observation_conv_layer_params=conv_layer_params,
-        observation_fc_layer_params=None,
+        observation_fc_layer_params=(400,),
         action_fc_layer_params=None,
-        joint_fc_layer_params=fc_layer_params,
+        joint_fc_layer_params=(300,),
         kernel_initializer=kernel_initializer,
         last_kernel_initializer=final_layer_initializer)
 
-target_actor_net = ActorNetwork(observation_spec,
-               action_spec,
-               preprocessing_layers=None,
-               preprocessing_combiner=None,
-               conv_layer_params= conv_layer_params,
-               fc_layer_params=(200, 200),
-               dropout_layer_params=None,
-               activation_fn=tf.keras.activations.relu,
-               enable_last_layer_zero_initializer=False,
-               name='TargetActorNetwork')
-
-target_critic_net = critic_network.CriticNetwork(
-        (observation_spec, action_spec),
-        observation_conv_layer_params=conv_layer_params,
-        observation_fc_layer_params=None,
-        action_fc_layer_params=None,
-        joint_fc_layer_params=fc_layer_params,
-        kernel_initializer=kernel_initializer,
-        last_kernel_initializer=final_layer_initializer)
+#target_actor_net = ActorNetwork(observation_spec,
+#               action_spec,
+#               preprocessing_layers=None,
+#               preprocessing_combiner=None,
+#               conv_layer_params= conv_layer_params,
+#               fc_layer_params=(200, 200),
+#               dropout_layer_params=None,
+#               activation_fn=tf.keras.activations.relu,
+#               enable_last_layer_zero_initializer=False,
+#               name='TargetActorNetwork')
+#
+#target_critic_net = critic_network.CriticNetwork(
+#        (observation_spec, action_spec),
+#        observation_conv_layer_params=conv_layer_params,
+#        observation_fc_layer_params=None,
+#        action_fc_layer_params=None,
+#        joint_fc_layer_params=fc_layer_params,
+#        kernel_initializer=kernel_initializer,
+#        last_kernel_initializer=final_layer_initializer)
 
 #########AGENTS######
 
 actor_optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=1e-4)
 critic_optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=1e-3)
 train_step_counter = tf.Variable(0)
+global_step = tf.Variable(0,trainable=False)
+
+starter_epsilon = .15
+end_epsilon = .2
+decay_steps = num_iterations + initial_collect_steps
+ou_noise_size = tf.compat.v1.train.polynomial_decay(starter_epsilon,
+                                                    train_step_counter,
+                                                    decay_steps,
+                                                    end_epsilon,
+                                                    power=1.0,
+                                                    cycle=False)
 
 agent = ddpg_agent.DdpgAgent(
     time_step_spec= time_step_spec,
@@ -127,14 +138,12 @@ agent = ddpg_agent.DdpgAgent(
     critic_network= critic_net,
     actor_optimizer=actor_optimizer,
     critic_optimizer= critic_optimizer,
-    ou_stddev= 0.15,
-    ou_damping= 0.2,
-    target_actor_network= target_actor_net,
-    target_critic_network= target_critic_net,
+    ou_stddev= ou_noise_size(),
+    ou_damping= 0.25,
+    target_critic_network= None,
     target_update_tau= 0.001,
-    target_update_period= 1,
     dqda_clipping= None,
-    td_errors_loss_fn= None,
+    td_errors_loss_fn= common.element_wise_squared_loss,
     gamma= 0.99,
     reward_scale_factor= None,
     gradient_clipping= None,
@@ -153,18 +162,23 @@ agent.initialize()
 replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
     data_spec=agent.collect_data_spec,
     batch_size=train_env.batch_size,
-    max_length=replay_buffer_max_length)
+    max_length=replay_buffer_max_length,)
+    # dataset_drop_remainder=True)
 
-dataset = replay_buffer.as_dataset(
-    sample_batch_size=batch_size,num_steps=2)
+
+
+# num_train_steps = 10
+
+# for _ in range(num_train_steps):
+#   trajectories, _ = next(iterator)
+#   # print(trajectories)
+#   loss = agent.train(experience=trajectories)
+
+
 #Not sure why I need a lambda here, just seems like it returns the dataset?##
 #experience_dataset_fn = lambda: dataset
 
-########POLICY#######
-tf_eval_policy = agent.policy
-tf_collect_policy = agent.collect_policy
-eval_policy = tf_eval_policy
-collect_policy = tf_collect_policy
+
 #eval_policy = ou_noise_policy.OUNoisePolicy(tf_eval_policy,0.15,0.2)
 #collect_policy = ou_noise_policy.OUNoisePolicy(tf_collect_policy,0.15,0.2)
 #random_policy = OUNoisePolicy(train_env.time_step_spec(),
@@ -182,7 +196,7 @@ collect_policy = tf_collect_policy
 
 
 
-####DATA COLLECTION ####
+# ####DATA COLLECTION ####
 print("we got to 2")
 def compute_avg_return(environment, policy, num_episodes=10):
 
@@ -196,12 +210,13 @@ def compute_avg_return(environment, policy, num_episodes=10):
       action_step = policy.action(time_step)
       time_step = environment.step(action_step.action)
       episode_return += time_step.reward
+#      print(time_step.reward)
     total_return += episode_return
 
   avg_return = total_return / num_episodes
   return avg_return.numpy()[0]
 
-compute_avg_return(eval_env, eval_policy, num_eval_episodes)
+#compute_avg_return(eval_env, eval_policy, num_eval_episodes)
 
 
 def collect_step(environment, policy, buffer):
@@ -223,7 +238,7 @@ print("we got to 3")
 # https://www.tensorflow.org/agents/api_docs/python/tf_agents/drivers
 
 
-iterator = iter(dataset)
+
 
 #####TRAIN AND EXECUTE #####
 #try:
@@ -236,12 +251,43 @@ iterator = iter(dataset)
 
 # Reset the train step
 #agent.train_step_counter.assign(0)
+########POLICY#######
+example_environment = tf_py_environment.TFPyEnvironment(suite_gym.load(env_name))
+random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
+                                                train_env.action_spec())
+compute_avg_return(eval_env, random_policy, num_eval_episodes)
+tf_eval_policy = agent.policy
+tf_collect_policy = agent.collect_policy
+eval_policy = tf_eval_policy
+collect_policy = tf_collect_policy
+
+# Peform functions required before entering the training loop
+###Observer###
+replay_observer = [replay_buffer.add_batch]
+
+collect_steps_per_iteration = 64
+collect_op = dynamic_step_driver.DynamicStepDriver(
+  train_env,
+  agent.collect_policy,
+  observers=replay_observer,
+  num_steps=collect_steps_per_iteration).run()
+
+dataset = replay_buffer.as_dataset(
+    sample_batch_size=64,
+    num_steps=2,)
+    # single_deterministic_pass = True)
+
+
+iterator = iter(dataset)
+# collect_data(train_env, random_policy, replay_buffer, steps=100)
+# agent.train = common.function(agent.train)
+agent.train_step_counter.assign(0)
+avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
+returns = [avg_return]
+# print(returns)
 
 # Evaluate the agent's policy once before training.
-avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
-print(avg_return)
-returns = [avg_return]
-print("we got to 4")
+# print("we got to 4")
 for _ in range(num_iterations):
 
   # Collect a few steps using collect_policy and save to the replay buffer.
@@ -250,9 +296,9 @@ for _ in range(num_iterations):
 
   # Sample a batch of data from the buffer and update the agent's network.
   experience, unused_info = next(iterator)
-  train = agent.train(experience)
-  print("Agent Trained")
-  train_loss = train.loss
+  # new_experience = experience.replace(policy_info=(1))
+  train_loss = agent.train(experience).loss
+  # print("Agent Trained!")
   step = agent.train_step_counter.numpy()
 
   if step % log_interval == 0:
