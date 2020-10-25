@@ -6,38 +6,24 @@ Created on Fri Oct  2 16:15:56 2020
 """
 from __future__ import absolute_import, division, print_function
 
-import os
-import base64
-import imageio
-import IPython
-import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import tempfile
 
 #
 import tensorflow as tf
-import pdb
 from tf_agents.agents.ddpg import ddpg_agent
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import suite_gym
 from tf_agents.experimental.train.utils import train_utils
-from tf_agents.experimental.train import learner
-from tf_agents.metrics import py_metrics
-from tf_agents.experimental.train import triggers
 from tf_agents.environments import tf_py_environment
-from tf_agents.policies import ou_noise_policy
-from tf_agents.eval import metric_utils
 from tf_agents.metrics import tf_metrics
 from tf_agents.environments import suite_pybullet
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
-from tf_agents.trajectories import trajectory
 from tf_agents.policies import random_tf_policy
 from tf_agents.experimental.train.utils import spec_utils
 from tf_agents.agents.ddpg import critic_network
 from tf_agents.utils import common
 from tf_agents.policies import py_tf_eager_policy
-from tf_agents.experimental.train import actor
 from Networks import ActorNetwork
 tf.compat.v1.enable_v2_behavior()
 
@@ -79,7 +65,7 @@ observation_spec, action_spec, time_step_spec = (spec_utils.get_tensor_specs(tra
 #######Networks#####
 #conv_layer_params = [(32,3,3),(32,3,3),(32,3,3)]
 conv_layer_params = None
-fc_layer_params=(400, 300)
+fc_layer_params=(200, 100)
 kernel_initializer = tf.keras.initializers.VarianceScaling(
         scale=1. / 3., mode='fan_in', distribution='uniform')
 final_layer_initializer = tf.keras.initializers.RandomUniform(
@@ -98,9 +84,9 @@ actor_net = ActorNetwork(observation_spec,
 critic_net = critic_network.CriticNetwork(
         (observation_spec, action_spec),
         observation_conv_layer_params=conv_layer_params,
-        observation_fc_layer_params=(400,),
+        observation_fc_layer_params=(200,),
         action_fc_layer_params=None,
-        joint_fc_layer_params=(300,),
+        joint_fc_layer_params=(100,),
         kernel_initializer=kernel_initializer,
         last_kernel_initializer=final_layer_initializer)
 
@@ -158,9 +144,9 @@ agent = ddpg_agent.DdpgAgent(
     td_errors_loss_fn= common.element_wise_squared_loss,
     gamma= 0.99,
     reward_scale_factor= None,
-    gradient_clipping= None,
-    debug_summaries= None,
-    summarize_grads_and_vars= False,
+    gradient_clipping= True,
+    debug_summaries= True,
+    summarize_grads_and_vars= True,
     train_step_counter= train_step_counter,
     name= "Agent"
 )
@@ -256,7 +242,7 @@ initial_collect_driver = dynamic_episode_driver.DynamicEpisodeDriver(
     train_env,
     random_policy,
     observers=observers,
-    num_episodes = 5)
+    num_episodes = 2)
 
 collect_driver = dynamic_episode_driver.DynamicEpisodeDriver(
     train_env,
@@ -331,12 +317,11 @@ iterator = iter(dataset)
 for _ in range(num_iterations):
   # Training.
   collect_driver.run()
-  for i in range(500):
+  for i in range(1000):
       trajectories, _ = next(iterator)
       loss_info = agent.train(experience=trajectories)
   # Note, step goes up by 500 because of loop!
   step = agent.train_step_counter.numpy()
-  print(step)
   if eval_interval and step % eval_interval == 0:
     metrics = get_eval_metrics()
     log_eval_metrics(step, metrics)
