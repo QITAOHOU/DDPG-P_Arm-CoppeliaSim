@@ -320,7 +320,7 @@ for _ in range(num_iterations):
   for i in range(1000):
       trajectories, _ = next(iterator)
       loss_info = agent.train(experience=trajectories)
-  # Note, step goes up by 500 because of loop!
+  # Note, step goes up by 1000 because of loop!
   step = agent.train_step_counter.numpy()
   if eval_interval and step % eval_interval == 0:
     metrics = get_eval_metrics()
