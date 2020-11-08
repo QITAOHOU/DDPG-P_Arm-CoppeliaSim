@@ -1,4 +1,4 @@
-# Robotics-AI-Car-Hand
+# DDPG-P_Arm-CoppeliaSim
 First attempt at implementing a RL Algorithm to a Robotics project. 
 I have split the project into two primary parts. Creating and interfacing with a CoppeliaSim scene, and implementing a DDPG algorithm.
 I have set up a scene and am able to send torques to joint motors, which can be found under CoppeliaSim.
