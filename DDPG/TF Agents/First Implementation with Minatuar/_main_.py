@@ -24,7 +24,6 @@ from tf_agents.experimental.train.utils import spec_utils
 from tf_agents.agents.ddpg import critic_network
 from tf_agents.agents.ddpg import actor_network
 from tf_agents.utils import common
-from tf_agents.policies import py_tf_eager_policy
 tf.compat.v1.enable_v2_behavior()
 
 
@@ -167,16 +166,10 @@ replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
 #Will be used to Populate Replay Buffer
 random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
                                                 train_env.action_spec())
-# compute_avg_return(eval_env, random_policy, num_eval_episodes)
 
-#Defines Policies and run in Eager Mode, so computation is done immediately. Needed to prevent random "None" appearing
+#Defines Policies
 eval_policy = agent.policy
-# eval_policy = eval_policy = py_tf_eager_policy.PyTFEagerPolicy(
-#   tf_eval_policy, use_tf_function=True)
-
 collect_policy = agent.collect_policy
-# collect_policy = py_tf_eager_policy.PyTFEagerPolicy(
-#   tf_collect_policy, use_tf_function=True)
 
 
 
