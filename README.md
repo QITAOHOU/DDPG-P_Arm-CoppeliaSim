@@ -14,11 +14,13 @@ I have set up a scene and am able to send torques to joint motors, which can be 
 In order to run, make sure that you have a version of CoppeliaSim. Then, place the "b0.py" and "b0RemoteApi.py" and "_main_.py" files in the same folder as all the dependencies (found under CoppeliaSim\Python Programs\Dependancies). Open the CoppeliaSim scene called "First Attempt" from the Coppelia Scene folder, and once the BlueZero node has been created (should happen automatically), go to the "Add Ons" menu at the top and tick "b0RemoteApiServer". Leaving the scene open, run the Python Script. The robotic arm should execute a series of movements, and then the simulation ends.
 
 ### DDPG Agent
+After having familiarized myself with CoppeliaSim, I went about implementing the DDPG Agent. Having not worked with the algorith before, I decided to use TF Agents to implement the algorithm so I could get familiar with the set up and design. Furthermore, I wanted to get the DDPG Agent working on the OpenAI Gym Minataur scene first, to confirm that my set up will work.
+This has been done, and can be found under CoppeliaSim\DDPG\TF Agent\_main_.py. The implementation is essentially the same as that in the paper, except that I allowed my network to run for an entire epsidoe, learn from it, then iterate again as oppose to having it done at each step. This is likely counterproductive but I wanted to do some experimentation with how the network learns. I am currently still adjusting the hyperparameters to improve the rate of convergence, but have had the following results:
 
+![100 iterations](https://your-copied-image-address)
 
+After I am satisfied with my parameter tuning, I will be recoding the DDPG algorithm from just tensorflow. This will give me much more flexibility in my implementation, allowing me to experiment with different types of algorithms. After that, I will code up the Coppelia Scene and train the DDPG Agent to pick up the box.
 
-I am in the process of implementing the DDPG algorithm. I wanted to gain some experience with using TF Agents to implement the algorithm to get familiar with the various parts of a DDPG program,
-and so am implementing a DDPG agent in the OpenAI Gym Minataur scene before I attempt to code up the CoppeliaSim environment for TF Agents.
 
 Current Goals:
 
