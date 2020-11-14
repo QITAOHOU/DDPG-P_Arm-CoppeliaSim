@@ -30,7 +30,7 @@ tf.compat.v1.enable_v2_behavior()
 tempdir = tempfile.gettempdir()
 
 ###################HYPERPARAMETERS##################
-num_iterations = 200 # @param {type:"integer"}
+num_iterations = 10 # @param {type:"integer"}
 
 initial_collect_steps = 1000  # @param {type:"integer"} 
 collect_steps_per_iteration = 64  # @param {type:"integer"}
@@ -273,11 +273,11 @@ for _ in range(num_iterations):
 
 ####PLOT#####
     
-iterations = range(0, step, eval_interval)
+iterations = range(0, int(step/100), eval_interval)
 plt.plot(iterations, returns)
 plt.ylabel('Average Return')
 plt.xlabel('Iterations')
-plt.ylim(top=250)
+# plt.ylim(top=250)
 
 
 
