@@ -19,12 +19,3 @@ This has been done, and can be found under CoppeliaSim\DDPG\TF Agent\_main_.py. 
 https://docs.google.com/document/d/1ce6UHoxpXv4iciYGPrLfzhLmyC_gcSpX-gh4j7mdMfM/edit?usp=sharing (Link to Experimentation Log)
 
 After I am satisfied with my parameter tuning, I will be recoding the DDPG algorithm from just tensorflow. This will give me much more flexibility in my implementation, allowing me to experiment with different types of algorithms. After that, I will code up the Coppelia Scene and train the DDPG Agent to pick up the box.
-
-
-Current Goals:
-
--Keep adjusting hyperparameters of Minatuar DDPG Agent for better convergence
-
--Code up CoppeliaSim environment for TF Agents
-
--Reimplement DDPG using just Tensorflow
