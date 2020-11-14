@@ -16,8 +16,7 @@ In order to run, make sure that you have a version of CoppeliaSim. Then, place t
 ### DDPG Agent
 After having familiarized myself with CoppeliaSim, I went about implementing the DDPG Agent. Having not worked with the algorith before, I decided to use TF Agents to implement the algorithm so I could get familiar with the set up and design. Furthermore, I wanted to get the DDPG Agent working on the OpenAI Gym Minataur scene first, to confirm that my set up will work.
 This has been done, and can be found under CoppeliaSim\DDPG\TF Agent\_main_.py. The implementation is essentially the same as that in the paper, except that I allowed my network to run for an entire epsidoe, learn from it, then iterate again as oppose to having it done at each step. This is likely counterproductive but I wanted to do some experimentation with how the network learns. I am currently still adjusting the hyperparameters to improve the rate of convergence, but have had the following results:
-
-![100 iterations](https://your-copied-image-address)
+https://docs.google.com/document/d/1ce6UHoxpXv4iciYGPrLfzhLmyC_gcSpX-gh4j7mdMfM/edit?usp=sharing (Link to Experimentation Log)
 
 After I am satisfied with my parameter tuning, I will be recoding the DDPG algorithm from just tensorflow. This will give me much more flexibility in my implementation, allowing me to experiment with different types of algorithms. After that, I will code up the Coppelia Scene and train the DDPG Agent to pick up the box.
 
