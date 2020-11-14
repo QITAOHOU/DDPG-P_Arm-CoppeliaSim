@@ -1,4 +1,4 @@
-# Introduction 
+## Introduction 
 This repository contains my attempt to implement a Reinforcement Learning algorithm to a robotics scene in CoppeliaSim. Specifically, I am attempting to train a DDPG agent to pick up a box using a P_arm in a simulation. 
 ## Literature Review
 Before attempting the problem, I did some background reading to identify what algorithm I wanted to use. I ended up settling on the DDPG as it was the most versatile and particularly applicable to continuous control problems like the dexterous robotics problem identified above.
