@@ -30,20 +30,20 @@ tf.compat.v1.enable_v2_behavior()
 tempdir = tempfile.gettempdir()
 
 ###################HYPERPARAMETERS##################
-num_iterations = 10 # @param {type:"integer"}
+num_iterations = 100 
 
-initial_collect_steps = 1000  # @param {type:"integer"} 
-collect_steps_per_iteration = 64  # @param {type:"integer"}
-replay_buffer_max_length = 100000  # @param {type:"integer"}
+initial_collect_steps = 1000  
+collect_steps_per_iteration = 64  
+replay_buffer_max_length = 100000 
 
-batch_size = 64  # @param {type:"integer"}
-learning_rate = 1e-3  # @param {type:"number"}
-log_interval = 200  # @param {type:"integer"}
+batch_size = 64 
+learning_rate = 1e-3  
+log_interval = 200  
 
-num_eval_episodes = 10  # @param {type:"integer"}
-eval_interval = 10  # @param {type:"integer"}
+num_eval_episodes = 10 
+eval_interval = 10  
 
-policy_save_interval = 5000 # @param {type:"integer"}
+policy_save_interval = 5000 
 
 #####LOAD ENVIRONMENT #####
 env_name = "MinitaurBulletEnv-v0"
