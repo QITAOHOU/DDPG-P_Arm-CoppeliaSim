@@ -30,7 +30,7 @@ tf.compat.v1.enable_v2_behavior()
 tempdir = tempfile.gettempdir()
 
 ###################HYPERPARAMETERS##################
-num_iterations = 100 
+num_iterations = 1000
 
 initial_collect_steps = 1000  
 collect_steps_per_iteration = 64  
@@ -64,7 +64,7 @@ observation_spec, action_spec, time_step_spec = (spec_utils.get_tensor_specs(tra
 #######Networks#####
 #conv_layer_params = [(32,3,3),(32,3,3),(32,3,3)]
 conv_layer_params = None
-fc_layer_params=(200, 100)
+fc_layer_params=(400, 300)
 kernel_initializer = tf.keras.initializers.VarianceScaling(
         scale=1. / 3., mode='fan_in', distribution='uniform')
 final_layer_initializer = tf.keras.initializers.RandomUniform(
@@ -83,9 +83,9 @@ actor_net = actor_network.ActorNetwork(observation_spec,
 critic_net = critic_network.CriticNetwork(
         (observation_spec, action_spec),
         observation_conv_layer_params=conv_layer_params,
-        observation_fc_layer_params=(200,),
+        observation_fc_layer_params=(400,),
         action_fc_layer_params=None,
-        joint_fc_layer_params=(100,),
+        joint_fc_layer_params=(300,),
         kernel_initializer=kernel_initializer,
         last_kernel_initializer=final_layer_initializer)
 
